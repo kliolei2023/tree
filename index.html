@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>V11.0: 數字魔法與寶麗來修復</title>
+    <title>V10.0: 雪花與自訂粒子圖案</title>
     
-    <!-- Libraries -->
+    <!-- 核心庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
@@ -18,10 +18,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
     <style>
-        body { margin: 0; overflow: hidden; background-color: #020502; font-family: 'Segoe UI', sans-serif; user-select: none; }
+        body { margin: 0; overflow: hidden; background-color: #010801; font-family: 'Segoe UI', sans-serif; user-select: none; }
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-        /* Cursor */
+        /* 虛擬游標 */
         #virtual-cursor {
             position: absolute; width: 24px; height: 24px;
             background: rgba(255, 50, 50, 0.6);
@@ -33,7 +33,7 @@
             background: #00ff00; box-shadow: 0 0 25px #00ff00; transform: translate(-50%, -50%) scale(0.8);
         }
 
-        /* UI Panel */
+        /* UI 面板 */
         #ui-panel {
             position: absolute; top: 20px; left: 20px; width: 350px;
             background: rgba(10, 15, 20, 0.9); backdrop-filter: blur(15px);
@@ -57,7 +57,7 @@
         input[type="file"] { display: none; }
         input[type=range] { width: 100%; height: 6px; background: #333; border-radius: 3px; margin: 8px 0; accent-color: #00d2ff; }
 
-        /* Camera Modal */
+        /* 拍攝專用模態視窗 */
         #camera-modal {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 300; display: none;
@@ -68,12 +68,14 @@
             transform: scaleX(-1);
         }
         #camera-controls { margin-top: 20px; display: flex; gap: 20px; }
-        .cam-btn { padding: 15px 30px; font-size: 18px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; }
+        .cam-btn {
+            padding: 15px 30px; font-size: 18px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer;
+        }
         .btn-snap { background: #ff0055; color: white; }
         .btn-confirm { background: #00ff00; color: black; display: none; }
         .btn-cancel { background: #555; color: white; }
 
-        /* Overlay */
+        /* 啟動頁 */
         #overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, #00111a, #000); z-index: 200;
@@ -88,20 +90,12 @@
             position: absolute; bottom: 20px; width: 100%; text-align: center;
             color: rgba(255,255,255,0.7); font-size: 14px; pointer-events: none; z-index: 50;
         }
-        
-        /* Magic Hint */
-        #magic-hint {
-            position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 40px; font-weight: bold; color: yellow; text-shadow: 0 0 20px orange;
-            opacity: 0; transition: opacity 0.5s; pointer-events: none; z-index: 150;
-        }
     </style>
 </head>
 <body>
 
     <div id="virtual-cursor"></div>
     <div id="status-bar">準備就緒</div>
-    <div id="magic-hint"></div>
 
     <!-- 拍攝介面 -->
     <div id="camera-modal">
@@ -119,8 +113,8 @@
 
     <!-- 啟動頁 -->
     <div id="overlay">
-        <h1>V11.0 數字魔法版</h1>
-        <p>比出 1-5 觸發粒子魔法 | 寶麗來修復</p>
+        <h1>V10.0 雪花與自訂圖案</h1>
+        <p>冰晶雪花 | 圖片轉粒子 | 螺旋聖誕樹</p>
         <button id="start-btn" onclick="initApp()">啟動系統</button>
     </div>
 
@@ -150,7 +144,7 @@
         <div class="control-group">
             <h3>🖼️ 寶麗來相片 (牆)</h3>
             <label class="file-upload" style="display:block; text-align:center;">
-                📂 上傳相片 (修復版)
+                📂 上傳多張相片 (懸掛)
                 <input type="file" multiple accept="image/*" onchange="handlePolaroidUpload(this)">
             </label>
             <button onclick="clearPhotos()" style="width:100%; margin-top:5px; background:rgba(255,50,50,0.2)">❌ 清空相片</button>
@@ -199,12 +193,6 @@
         let isHandDetected = false;
         let rotX = 0, rotY = 0;
         let cursorX=0, cursorY=0, isPinching=false, dragTarget=null;
-
-        // Magic Vars
-        let fingerCount = 0;
-        let fingerStableFrames = 0;
-        let lastFingerCount = 0;
-        const MAGIC_TRIGGER_FRAMES = 20; // 穩定多少幀觸發魔法
 
         // --- 1. 初始化 ---
         async function initApp() {
@@ -256,6 +244,7 @@
             renderer.toneMapping = THREE.NoToneMapping; 
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
+            // Lights
             const amb = new THREE.AmbientLight(0xffffff, 0.8); scene.add(amb);
             const dir = new THREE.DirectionalLight(0xffffff, 1.2); dir.position.set(10,20,10); scene.add(dir);
             const p1 = new THREE.PointLight(0x00d2ff, 3, 50); p1.position.set(20,10,20); scene.add(p1);
@@ -288,6 +277,7 @@
             });
         }
 
+        // --- 3. 系統切換 ---
         function switchSystem(mode) {
             config.mode = mode;
             document.querySelectorAll('.sys-btn').forEach(b => b.classList.remove('active'));
@@ -342,79 +332,24 @@
             }
         }
 
-        // --- 4. 形狀算法 ---
+        // --- 4. 形狀算法 (雪花、樹、心、自訂) ---
         function setShape(type) {
             config.currentShape = type;
             polaroidGroup.visible = true;
             
             document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+            // 如果不是 file input 則標記
             if(event && event.target.tagName === 'BUTTON') event.target.classList.add('active');
 
-            // 處理數字魔法
-            if (['1','2','3','4','5'].includes(type)) {
-                generateNumberShape(type);
-                return;
+            if(type === 'heart') {
+                generateHeart();
+            } else if (type === 'tree') {
+                generateTree();
+            } else if (type === 'snowflake') {
+                generateSnowflake();
             }
-
-            if(type === 'heart') generateHeart();
-            else if (type === 'tree') generateTree();
-            else if (type === 'snowflake') generateSnowflake();
             
             applyColorsToSystem();
-        }
-
-        // --- 數字生成邏輯 ---
-        function generateNumberShape(numStr) {
-            const cvs = document.createElement('canvas');
-            cvs.width = 100; cvs.height = 100;
-            const ctx = cvs.getContext('2d');
-            ctx.fillStyle = '#000'; ctx.fillRect(0,0,100,100);
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 80px Arial';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(numStr, 50, 50);
-            
-            const data = ctx.getImageData(0,0,100,100).data;
-            let pIdx = 0;
-            
-            for(let i=0; i<config.maxParticles; i++) {
-                particleScales[i] = 1.0;
-                // 隨機採樣直到找到像素
-                let x, y, alpha=0;
-                let attempts = 0;
-                while(alpha < 100 && attempts < 50) {
-                    const idx = Math.floor(Math.random() * 10000);
-                    alpha = data[idx*4+3];
-                    x = idx % 100; y = Math.floor(idx/100);
-                    attempts++;
-                }
-                
-                if (alpha > 100) {
-                    targetPositions[i] = {
-                        x: (x - 50) * 0.4,
-                        y: -(y - 50) * 0.4,
-                        z: (Math.random() - 0.5) * 5
-                    };
-                    // 金色魔法光
-                    particleColors[i] = new THREE.Color().setHSL(0.1 + Math.random()*0.1, 1.0, 0.6);
-                } else {
-                    // 如果找不到有效像素，就隱藏或散開
-                    particleScales[i] = 0.0;
-                    targetPositions[i] = {x:0, y:0, z:0};
-                }
-            }
-            applyColorsToSystem();
-            showMagicHint(numStr);
-        }
-
-        function showMagicHint(num) {
-            const el = document.getElementById('magic-hint');
-            el.innerText = `✨ Magic: ${num} ✨`;
-            el.style.opacity = 1;
-            el.style.transform = "translate(-50%, -50%) scale(1.2)";
-            setTimeout(() => {
-                el.style.opacity = 0;
-                el.style.transform = "translate(-50%, -50%) scale(1)";
-            }, 1500);
         }
 
         function generateHeart() {
@@ -425,6 +360,7 @@
                 const y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
                 const z=(Math.random()-0.5)*5;
                 targetPositions[i]={x:x*r*0.8, y:y*r*0.8, z:z*r};
+                
                 const normalizedY = (y + 15) / 25;
                 const c = new THREE.Color();
                 c.setHSL(0.98, 1.0, 0.4 + normalizedY * 0.4);
@@ -433,8 +369,10 @@
         }
 
         function generateTree() {
-            const starCount = 350; const treeParticles = config.maxParticles - starCount;
+            const starCount = 350;
+            const treeParticles = config.maxParticles - starCount;
             const totalHeight = 28; const spirals = 7.5; 
+            
             for(let i=0; i<config.maxParticles; i++) {
                 particleScales[i] = 1.0;
                 let c = new THREE.Color();
@@ -457,7 +395,9 @@
                     const spreadR = (Math.random() - 0.5) * 2.5 * t;
                     const spreadH = (Math.random() - 0.5) * 1.5;
                     const finalR = baseR + spreadR;
+                    
                     targetPositions[i] = { x: Math.cos(angle)*finalR, y: h+spreadH, z: Math.sin(angle)*finalR };
+                    
                     const distFromCenter = finalR - baseR;
                     if (distFromCenter > 0.5) c.setHSL(0.45, 1.0, 0.6 + Math.random()*0.4); 
                     else if (distFromCenter < -0.5) c.setHSL(0.38, 1.0, 0.15 + Math.random()*0.1);
@@ -468,65 +408,117 @@
             }
         }
 
+        // --- 新增：雪花算法 ---
         function generateSnowflake() {
             for(let i=0; i<config.maxParticles; i++) {
                 particleScales[i] = 1.0;
+                
+                // 6個主分支
                 const branch = Math.floor(Math.random() * 6);
                 const angle = (branch / 6) * Math.PI * 2;
+                
+                // 每個分支的長度 (0 ~ 18)
                 const dist = Math.random() * 18;
+                
+                // 主幹坐標
                 let x = Math.cos(angle) * dist;
-                let z = Math.sin(angle) * dist;
-                let y = (Math.random() - 0.5) * 2; 
+                let z = Math.sin(angle) * dist; // 水平躺著，或用y直立
+                let y = (Math.random() - 0.5) * 2; // 厚度
+                
+                // 分形生長 (模擬晶體分岔)
+                // 隨著距離增加，分岔機率變大
                 if (dist > 5 && Math.random() > 0.3) {
-                    const subAngle = angle + Math.PI / 3; 
+                    const subAngle = angle + Math.PI / 3; // 60度分岔
                     const subLen = (Math.random() - 0.5) * (dist * 0.5);
                     x += Math.cos(subAngle) * subLen;
                     z += Math.sin(subAngle) * subLen;
                 }
-                x += (Math.random() - 0.5) * 0.5; z += (Math.random() - 0.5) * 0.5;
+                
+                // 第二層細節雜訊 (讓它看起來像冰晶)
+                x += (Math.random() - 0.5) * 0.5;
+                z += (Math.random() - 0.5) * 0.5;
+
+                // 豎立起來 (原本是在 XZ 平面) -> 改到 XY 平面
                 targetPositions[i] = { x: x, y: z, z: y };
+
+                // 色彩：中心白 -> 邊緣冰藍
                 const c = new THREE.Color();
                 const distFromCenter = Math.sqrt(x*x + z*z);
                 const normalizedDist = distFromCenter / 20;
+                // 白 (0.6, 0, 1) -> 藍 (0.6, 1, 0.5)
                 c.setHSL(0.55 + normalizedDist * 0.1, 0.8, 1.0 - normalizedDist * 0.5);
                 particleColors[i] = c;
             }
         }
 
+        // --- 新增：自訂圖案處理 ---
         function handleShapeUpload(input) {
             if(!input.files.length) return;
+            
+            // 標記按鈕狀態
             document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
             input.parentElement.classList.add('active');
+
             const reader = new FileReader();
             reader.onload = (e) => {
-                const img = new Image(); img.src = e.target.result;
-                img.onload = () => { processImageToParticles(img); };
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    processImageToParticles(img);
+                };
             };
             reader.readAsDataURL(input.files[0]);
         }
 
         function processImageToParticles(img) {
             const cvs = document.createElement('canvas');
+            // 限制解析度以符合粒子數
             const maxRes = 100;
             const ratio = img.width / img.height;
-            let w = maxRes; let h = maxRes / ratio;
+            let w = maxRes;
+            let h = maxRes / ratio;
+            
             cvs.width = w; cvs.height = h;
             const ctx = cvs.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
             const data = ctx.getImageData(0, 0, w, h).data;
+            
+            let pIdx = 0;
+            const totalPixels = w * h;
+            
+            // 隨機選取像素填充，避免順序掃描導致的條紋感
+            // 簡單方法：遍歷並收集有效像素，然後隨機分配給粒子
             const validPixels = [];
-            for(let i=0; i<w*h; i++) {
-                if(data[i*4+3] > 100) {
-                    validPixels.push({ r: data[i*4], g: data[i*4+1], b: data[i*4+2], x: (i % w), y: Math.floor(i / w) });
+            for(let i=0; i<totalPixels; i++) {
+                if(data[i*4+3] > 100) { // Alpha check
+                    validPixels.push({
+                        r: data[i*4], g: data[i*4+1], b: data[i*4+2],
+                        x: (i % w), y: Math.floor(i / w)
+                    });
                 }
             }
+            
+            // 如果有效像素多於粒子數，隨機取樣
+            // 如果少於，則部分粒子隱藏
+            
             for(let i=0; i<config.maxParticles; i++) {
                 if (i < validPixels.length) {
+                    // 為了均勻分佈，可以打亂 validPixels，或直接取模
+                    // 這裡簡單取模循環 (如果粒子比像素多，會重複像素，這很好)
                     const p = validPixels[i % validPixels.length];
-                    targetPositions[i] = { x: (p.x - w/2) * 0.5, y: -(p.y - h/2) * 0.5, z: (p.r+p.g+p.b)/255*5/3 };
+                    
+                    // 映射座標
+                    const finalX = (p.x - w/2) * 0.5;
+                    const finalY = -(p.y - h/2) * 0.5; // Y翻轉
+                    // 亮度轉厚度
+                    const brightness = (p.r + p.g + p.b) / 3;
+                    const finalZ = (brightness / 255) * 5; 
+
+                    targetPositions[i] = { x: finalX, y: finalY, z: finalZ };
                     particleColors[i] = new THREE.Color(p.r/255, p.g/255, p.b/255);
                     particleScales[i] = 1.0;
                 } else {
+                    // 隱藏多餘粒子
                     particleScales[i] = 0.0;
                     targetPositions[i] = {x:0, y:0, z:0};
                 }
@@ -534,13 +526,84 @@
             applyColorsToSystem();
         }
 
+
         function randomOnSphere(r) {
-            const u = Math.random(); const v = Math.random();
-            const theta = 2 * Math.PI * u; const phi = Math.acos(2 * v - 1);
-            return { x: r * Math.sin(phi) * Math.cos(theta), y: r * Math.sin(phi) * Math.sin(theta), z: r * Math.cos(phi) };
+            const u = Math.random();
+            const v = Math.random();
+            const theta = 2 * Math.PI * u;
+            const phi = Math.acos(2 * v - 1);
+            return {
+                x: r * Math.sin(phi) * Math.cos(theta),
+                y: r * Math.sin(phi) * Math.sin(theta),
+                z: r * Math.cos(phi)
+            };
         }
 
-        // --- 5. 寶麗來修復 (No Flip) ---
+        // --- 5. 拍攝功能 ---
+        function openCamera() {
+            document.getElementById('camera-modal').style.display = 'flex';
+            document.getElementById('live-preview').play();
+            document.getElementById('live-preview').style.display='block';
+            document.getElementById('snapshot-canvas').style.display='none';
+            document.getElementById('btn-snap').style.display='inline-block';
+            document.getElementById('btn-confirm').style.display='none';
+            document.getElementById('btn-retake').style.display='none';
+        }
+        function closeCamera() { document.getElementById('camera-modal').style.display = 'none'; }
+        
+        function takeSnapshot() {
+            const video = document.getElementById('live-preview');
+            const canvas = document.getElementById('snapshot-canvas');
+            canvas.width = 640; canvas.height = 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, 640, 480);
+            video.style.display='none'; canvas.style.display='block';
+            document.getElementById('btn-snap').style.display='none';
+            document.getElementById('btn-confirm').style.display='inline-block';
+            document.getElementById('btn-retake').style.display='inline-block';
+        }
+        function retakeSnapshot() {
+            document.getElementById('live-preview').style.display='block';
+            document.getElementById('snapshot-canvas').style.display='none';
+            document.getElementById('btn-snap').style.display='inline-block';
+            document.getElementById('btn-confirm').style.display='none';
+            document.getElementById('btn-retake').style.display='none';
+        }
+
+        function confirmSnapshot() {
+            const canvas = document.getElementById('snapshot-canvas');
+            const tempCvs = document.createElement('canvas'); tempCvs.width=100; tempCvs.height=75;
+            const tCtx = tempCvs.getContext('2d');
+            tCtx.translate(100,0); tCtx.scale(-1,1); tCtx.drawImage(canvas, 0,0,100,75);
+            const data = tCtx.getImageData(0,0,100,75).data;
+            
+            let pIdx = 0;
+            for(let i=0; i<100*75; i++) {
+                if(pIdx >= config.maxParticles) break;
+                if(data[i*4+3] > 100) {
+                    const x=(i%100 - 50)*0.8, y=-(Math.floor(i/100)-37.5)*0.8, z=(data[i*4]/255)*5;
+                    targetPositions[pIdx] = {x,y,z};
+                    const r = data[i*4]/255;
+                    const g = data[i*4+1]/255;
+                    const b = data[i*4+2]/255;
+                    particleColors[pIdx] = new THREE.Color(r, g, b);
+                    particleScales[pIdx] = 1.0; 
+                    pIdx++;
+                }
+            }
+
+            for(let k = pIdx; k < config.maxParticles; k++) {
+                particleScales[k] = 0.0; 
+                targetPositions[k] = {x:0, y:0, z:0};
+            }
+            polaroidGroup.visible = false; 
+
+            applyColorsToSystem();
+            closeCamera();
+            document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+        }
+
+        // --- 6. 寶麗來 ---
         function handlePolaroidUpload(input) {
             if(!input.files.length) return;
             while(polaroidGroup.children.length > 0) polaroidGroup.remove(polaroidGroup.children[0]);
@@ -557,31 +620,29 @@
             const cvs = document.createElement('canvas'); cvs.width=512; cvs.height=600;
             const ctx = cvs.getContext('2d');
             ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,512,600);
+            
             const ratio = img.width/img.height;
             let dw=450, dh=450/ratio; if(dh>450){ dh=450; dw=450*ratio; }
             ctx.drawImage(img, 256-dw/2, 30, dw, dh);
+            
             ctx.fillStyle="#000000"; ctx.font="40px cursive"; ctx.textAlign="center";
             ctx.fillText(`Moments #${index+1}`, 256, 550);
             
             const tex = new THREE.CanvasTexture(cvs);
+            tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
             tex.encoding = THREE.sRGBEncoding; 
-            // 重要：修正倒轉問題
-            // 預設 Three.js PlaneGeometry UV 是正常的，Canvas 繪製也是正常的
-            // 如果之前有倒轉，可能是 mesh 旋轉造成的
+            
             const mat = new THREE.MeshBasicMaterial({ map:tex, side:THREE.DoubleSide, toneMapped: false });
             const mesh = new THREE.Mesh(new THREE.PlaneGeometry(8,9.3), mat);
             
             const ang = (index/total)*Math.PI*2;
             mesh.position.set(Math.cos(ang)*22, (Math.random()-0.5)*5, Math.sin(ang)*22);
-            mesh.lookAt(0,0,0); 
-            // 注意：lookAt 後 Z 軸朝向中心，我們需要旋轉 180度讓正面朝外
-            // 這不會造成上下顛倒
-            mesh.rotation.y += Math.PI;
+            mesh.lookAt(0,0,0); mesh.rotation.y+=Math.PI;
             polaroidGroup.add(mesh);
         }
         function clearPhotos() { while(polaroidGroup.children.length>0) polaroidGroup.remove(polaroidGroup.children[0]); }
 
-        // --- 6. MediaPipe & Magic Fingers ---
+        // --- 7. 手勢與動畫 ---
         function initMediaPipe() {
             const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
             hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
@@ -594,12 +655,9 @@
         function onHandResults(results) {
             const cursor = document.getElementById('virtual-cursor');
             const status = document.getElementById('status-bar');
-            
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 isHandDetected = true;
                 const lm = results.multiHandLandmarks[0];
-                
-                // Cursor & Pinch
                 const index=lm[8], thumb=lm[4];
                 cursorX=(1-index.x)*window.innerWidth; cursorY=index.y*window.innerHeight;
                 cursor.style.left=`${cursorX}px`; cursor.style.top=`${cursorY}px`;
@@ -608,74 +666,23 @@
                     if(!isPinching){ isPinching=true; handlePinchStart(cursorX,cursorY); }
                     else handlePinchMove(cursorX);
                 } else { cursor.classList.remove('pinching'); isPinching=false; dragTarget=null; }
-                
-                // Openness & Rotation
                 const wrist=lm[0], size=Math.hypot(lm[9].x-wrist.x, lm[9].y-wrist.y);
                 let avg=0; [8,12,16,20].forEach(i=>avg+=Math.hypot(lm[i].x-wrist.x, lm[i].y-wrist.y));
                 handOpenness = Math.max(0, Math.min(1, (avg/size/4 - 0.8)/1.2));
                 const px=1-lm[9].x, py=lm[9].y;
                 if(px>0.7) rotY=0.02; else if(px<0.3) rotY=-0.02; else rotY=0;
                 if(py<0.3) rotX=-0.02; else if(py>0.7) rotX=0.02; else rotX=0;
-
-                // --- MAGIC FINGER COUNTING ---
-                const count = countFingers(lm);
-                if (count > 0 && count <= 5) {
-                    if (count === lastFingerCount) {
-                        fingerStableFrames++;
-                    } else {
-                        fingerStableFrames = 0;
-                        lastFingerCount = count;
-                    }
-
-                    if (fingerStableFrames > MAGIC_TRIGGER_FRAMES) {
-                        // 觸發魔法
-                        if (config.currentShape !== String(count)) {
-                            setShape(String(count));
-                        }
-                    }
-                } else {
-                    fingerStableFrames = 0;
-                }
-
-                status.innerText = `手勢: ${count ? count + " 指" : (handOpenness<0.2?"聚攏":"散開")} | 旋轉: ${rotY!=0||rotX!=0?"開啟":"停止"}`;
+                status.innerText = `模式: ${handOpenness<0.2?"聚攏":"散開"} | 旋轉: ${rotY!=0||rotX!=0?"開啟":"停止"}`;
             } else { isHandDetected=false; rotX=0; rotY=0; status.innerText="手部離開 - 狀態鎖定"; }
         }
 
-        function countFingers(lm) {
-            // 簡單的手指計數算法 (基於 Y 軸，適用於手掌直立)
-            let count = 0;
-            // 基準點: 掌心(9) 或 指關節
-            // 食指
-            if (lm[8].y < lm[6].y) count++;
-            // 中指
-            if (lm[12].y < lm[10].y) count++;
-            // 無名指
-            if (lm[16].y < lm[14].y) count++;
-            // 小指
-            if (lm[20].y < lm[18].y) count++;
-            // 拇指 (判斷 X 軸距離)
-            // 如果右手: 拇指尖在指關節左邊；左手相反。
-            // 簡化：判斷拇指尖與小指根部的距離 vs 拇指根部與小指根部的距離
-            // 或者簡單判斷 拇指尖 x < 拇指IP x (視左右手而定)
-            // 這裡用更簡單的：看拇指尖是否比食指根部更遠離掌心
-            // 暫時忽略拇指的精確判斷，假設手勢清晰
-            const thumbTip = lm[4];
-            const indexBase = lm[5];
-            const pinkyBase = lm[17];
-            // 判斷開合
-            const distTip = Math.hypot(thumbTip.x - pinkyBase.x, thumbTip.y - pinkyBase.y);
-            const distBase = Math.hypot(lm[2].x - pinkyBase.x, lm[2].y - pinkyBase.y);
-            if (distTip > distBase * 1.2) count++;
-            
-            return count;
-        }
-
-        // ... Snapshot & Interactions ...
         function handlePinchStart(x, y) {
             const el = document.elementFromPoint(x, y);
-            if(el && (el.tagName==='INPUT'||el.tagName==='BUTTON'||el.tagName==='LABEL')) { 
+            if(el) {
                 if(el.tagName==='INPUT'&&el.type==='range') dragTarget=el;
-                else { el.click(); el.style.transform='scale(0.9)'; setTimeout(()=>el.style.transform='scale(1)',150); }
+                else if(el.tagName==='BUTTON' || el.tagName === 'LABEL') { 
+                    el.click(); el.style.transform='scale(0.9)'; setTimeout(()=>el.style.transform='scale(1)',150); 
+                }
             }
         }
         function handlePinchMove(x) {
@@ -683,56 +690,61 @@
                 const rect=dragTarget.getBoundingClientRect();
                 let v = (x-rect.left)/rect.width;
                 const min=parseFloat(dragTarget.min), max=parseFloat(dragTarget.max), step=parseFloat(dragTarget.step);
-                v = min + (max-min)*Math.max(0,Math.min(1,v)); if(step) v=Math.round(v/step)*step;
+                v = min + (max-min)*Math.max(0,Math.min(1,v));
+                if(step) v=Math.round(v/step)*step;
                 dragTarget.value=v; dragTarget.dispatchEvent(new Event('input'));
             }
         }
         function updateSize(v) { config.baseSize=parseFloat(v); if(config.mode==='points') particleSystem.material.size=config.baseSize; }
-        function updateDensity(v) { config.particleCount=parseInt(v); if(config.mode==='points') particleSystem.geometry.setDrawRange(0,config.particleCount); else particleSystem.count=config.particleCount; }
-
-        function openCamera() { document.getElementById('camera-modal').style.display='flex'; document.getElementById('live-preview').play(); document.getElementById('live-preview').style.display='block'; document.getElementById('snapshot-canvas').style.display='none'; document.getElementById('btn-snap').style.display='inline-block'; document.getElementById('btn-confirm').style.display='none'; document.getElementById('btn-retake').style.display='none'; }
-        function closeCamera() { document.getElementById('camera-modal').style.display='none'; }
-        function takeSnapshot() { const v=document.getElementById('live-preview'), c=document.getElementById('snapshot-canvas'); c.width=640; c.height=480; c.getContext('2d').drawImage(v,0,0,640,480); v.style.display='none'; c.style.display='block'; document.getElementById('btn-snap').style.display='none'; document.getElementById('btn-confirm').style.display='inline-block'; document.getElementById('btn-retake').style.display='inline-block'; }
-        function retakeSnapshot() { document.getElementById('live-preview').style.display='block'; document.getElementById('snapshot-canvas').style.display='none'; document.getElementById('btn-snap').style.display='inline-block'; document.getElementById('btn-confirm').style.display='none'; document.getElementById('btn-retake').style.display='none'; }
-        function confirmSnapshot() {
-            const canvas = document.getElementById('snapshot-canvas');
-            const tCtx = document.createElement('canvas').getContext('2d'); tCtx.canvas.width=100; tCtx.canvas.height=75; tCtx.translate(100,0); tCtx.scale(-1,1); tCtx.drawImage(canvas,0,0,100,75);
-            const data = tCtx.getImageData(0,0,100,75).data;
-            let pIdx=0;
-            for(let i=0; i<7500; i++) {
-                if(pIdx>=config.maxParticles) break;
-                if(data[i*4+3]>100) {
-                    targetPositions[pIdx]={x:(i%100-50)*0.8, y:-(Math.floor(i/100)-37.5)*0.8, z:(data[i*4]/255)*5};
-                    particleColors[pIdx]=new THREE.Color(data[i*4]/255, data[i*4+1]/255, data[i*4+2]/255);
-                    particleScales[pIdx]=1.0; pIdx++;
-                }
-            }
-            for(let k=pIdx; k<config.maxParticles; k++) { particleScales[k]=0.0; targetPositions[k]={x:0,y:0,z:0}; }
-            polaroidGroup.visible=false; applyColorsToSystem(); closeCamera();
+        function updateDensity(v) { 
+            config.particleCount=parseInt(v); 
+            if(config.mode==='points') particleSystem.geometry.setDrawRange(0,config.particleCount);
+            else particleSystem.count=config.particleCount;
         }
 
-        // Animation
+        // --- 8. 動畫 ---
         function animate() {
             requestAnimationFrame(animate);
             if(isHandDetected) smoothedOpenness += (handOpenness-smoothedOpenness)*0.1;
-            if(particleSystem) { particleSystem.rotation.y += rotY; particleSystem.rotation.x += rotX; polaroidGroup.rotation.y = particleSystem.rotation.y; polaroidGroup.rotation.x = particleSystem.rotation.x; }
-            const time=Date.now()*0.001; const mix=1-smoothedOpenness;
-            if(config.mode==='points') {
-                const pos=particleSystem.geometry.attributes.position;
+            
+            if(particleSystem) {
+                particleSystem.rotation.y += rotY; particleSystem.rotation.x += rotX;
+                polaroidGroup.rotation.y = particleSystem.rotation.y; polaroidGroup.rotation.x = particleSystem.rotation.x;
+            }
+
+            const time=Date.now()*0.001;
+            const mix=1-smoothedOpenness;
+
+            if(config.mode === 'points') {
+                const pos = particleSystem.geometry.attributes.position;
                 for(let i=0; i<config.particleCount; i++) {
-                    const s=particleScales[i]; if(s<0.01){ pos.setXYZ(i,1000,1000,1000); continue; }
+                    const scale = particleScales[i];
+                    if(scale < 0.01) { pos.setXYZ(i, 1000, 1000, 1000); continue; } 
+
                     const t=targetPositions[i], o=originalPositions[i];
-                    pos.setXYZ(i, (o.x+Math.sin(time+i*0.1)*3)*(1-mix)+t.x*mix, (o.y+Math.cos(time+i*0.2)*3)*(1-mix)+t.y*mix, o.z*(1-mix)+t.z*mix);
+                    const cx=(o.x+Math.sin(time+i*0.1)*3)*(1-mix) + t.x*mix;
+                    const cy=(o.y+Math.cos(time+i*0.2)*3)*(1-mix) + t.y*mix;
+                    const cz=(o.z)*(1-mix) + t.z*mix;
+                    pos.setXYZ(i, cx, cy, cz);
                 }
                 pos.needsUpdate=true;
             } else {
                 for(let i=0; i<config.particleCount; i++) {
-                    const s=particleScales[i]; if(s<0.01){ dummy.scale.set(0,0,0); } else {
+                    const scale = particleScales[i];
+                    if (scale < 0.01) {
+                         dummy.scale.set(0,0,0);
+                    } else {
                         const t=targetPositions[i], o=originalPositions[i];
-                        dummy.position.set((o.x+Math.sin(time+i*0.1)*3)*(1-mix)+t.x*mix, (o.y+Math.cos(time+i*0.2)*3)*(1-mix)+t.y*mix, o.z*(1-mix)+t.z*mix);
-                        dummy.rotation.set(time+i,time+i,0); dummy.scale.set(config.baseSize*(1-mix*0.3)*s,config.baseSize*(1-mix*0.3)*s,config.baseSize*(1-mix*0.3)*s);
+                        const cx=(o.x+Math.sin(time+i*0.1)*3)*(1-mix) + t.x*mix;
+                        const cy=(o.y+Math.cos(time+i*0.2)*3)*(1-mix) + t.y*mix;
+                        const cz=(o.z)*(1-mix) + t.z*mix;
+                        dummy.position.set(cx, cy, cz);
+                        dummy.rotation.set(time+i, time+i, 0);
+                        const s=config.baseSize*(1-mix*0.3) * scale;
+                        dummy.scale.set(s,s,s);
                     }
-                    dummy.updateMatrix(); particleSystem.setMatrixAt(i, dummy.matrix);
+                    dummy.updateMatrix();
+                    particleSystem.setMatrixAt(i, dummy.matrix);
                 }
                 particleSystem.instanceMatrix.needsUpdate=true;
             }
