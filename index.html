@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>V10.0: 雪花與自訂粒子圖案</title>
+    <title>粒子圖案</title>
     
     <!-- 核心庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -113,9 +113,9 @@
 
     <!-- 啟動頁 -->
     <div id="overlay">
-        <h1>V10.0 雪花與自訂圖案</h1>
-        <p>冰晶雪花 | 圖片轉粒子 | 螺旋聖誕樹</p>
-        <button id="start-btn" onclick="initApp()">啟動系統</button>
+        <h1>粒子魔法</h1>
+        <p>雪花 | 粒子 | 聖誕樹</p>
+        <button id="start-btn" onclick="initApp()">開始魔法</button>
     </div>
 
     <!-- 主控台 -->
@@ -132,8 +132,8 @@
             <h3>🎨 粒子形狀</h3>
             <div class="btn-grid">
                 <button onclick="setShape('heart')" class="shape-btn active">❤️ 鮮豔愛心</button>
-                <button onclick="setShape('tree')" class="shape-btn">🎄 螺旋聖誕樹</button>
-                <button onclick="setShape('snowflake')" class="shape-btn">❄️ 冰晶雪花</button>
+                <button onclick="setShape('tree')" class="shape-btn">🎄 聖誕樹</button>
+                <button onclick="setShape('snowflake')" class="shape-btn">❄️ 雪花</button>
                 <label class="file-upload shape-btn" style="border: 1px solid #ff00cc; color:#ffccff">
                     🖼️ 上傳圖案
                     <input type="file" accept="image/*" onchange="handleShapeUpload(this)">
@@ -142,7 +142,7 @@
         </div>
 
         <div class="control-group">
-            <h3>🖼️ 寶麗來相片 (牆)</h3>
+            <h3>🖼️ 掛相片 (牆)</h3>
             <label class="file-upload" style="display:block; text-align:center;">
                 📂 上傳多張相片 (懸掛)
                 <input type="file" multiple accept="image/*" onchange="handlePolaroidUpload(this)">
@@ -151,7 +151,7 @@
         </div>
 
         <div class="control-group">
-            <h3>📷 粒子快照</h3>
+            <h3>📷 拍照</h3>
             <button onclick="openCamera()" style="width:100%; background: #00d2ff; color:black; font-weight:bold;">📸 拍攝 (純淨模式)</button>
         </div>
 
